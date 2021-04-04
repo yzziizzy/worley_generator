@@ -25,11 +25,12 @@ int main(int argc, char* argv[]) {
 	worley_noise wn;
 	wn.width = 512;
 	wn.height = 512;
-	wn.num_points = 2;
-	wn.num_boxes = 20;
+	wn.num_points = 1;
+	wn.num_boxes = 2;
 	wn.seed = 31337;
 
-	worley_noise_generate_boxed_wrapped(&wn);
+	worley_noise_generate_infinite(&wn, 0, 1);
+//	worley_noise_generate_boxed_wrapped(&wn);
 	//generate_pcg_test(&wn);
 	
 	write_worley(argv[1], &wn);

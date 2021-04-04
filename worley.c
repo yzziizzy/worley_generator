@@ -77,7 +77,87 @@ float smootherstep(float a, float b, float t) {
 
 
 
-int worley_noise_generate_boxed_wrapped(worley_noise* wn) {
+void worley_noise_generate_infinite(worley_noise* wn, int block_x, int block_y) {
+	long w = wn->width;
+	long h = wn->height;
+	long nb = wn->num_boxes + 2;
+	long nb2 = nb * nb; 
+	
+	
+	
+	wn->data = malloc(sizeof(*wn->data) * w * h);
+	
+	v2l* points = malloc(sizeof(*points) * nb2 * wn->num_points);
+	
+	// generate points inside boxes
+	v2l box_sz = {
+		.x = (float)w / (float)wn->num_boxes,
+		.y = (float)h / (float)wn->num_boxes,
+	};
+	
+	for(int y = 0; y < nb; y++)
+	for(int x = 0; x < nb; x++) {
+		// index into array of points
+		int i = (y * nb + x) * wn->num_points;
+		
+		// prng seed
+		uint64_t rand_state = wn->seed;
+		rand_state = rand_state * (y - 1 + block_y) * 0xdeadbeef
+			+ (x - 1 + block_x) * 0xc00cf00d;
+		
+		for(int n = 0; n < wn->num_points; n++) {
+			v2l p = randpt(box_sz.x, box_sz.y, &rand_state);
+			points[i + n].x = p.x + box_sz.x * (x-1);
+			points[i + n].y = p.y + box_sz.y * (y-1);
+		}
+	}
+	
+	
+	for(int y = 0; y < h; y++)
+	for(int x = 0; x < w; x++) {
+		int i = y * w + x;
+		
+		
+		float closest1 = 9999999999999;
+		float closest2 = 999999999999;
+		float closest3 = 99999999999;
+		
+		int xb = floor((float)x / box_sz.x) + 1;
+		int yb = floor((float)y / box_sz.y) + 1;
+		
+		for(int yp = -1; yp <= 1; yp++)
+		for(int xp = -1; xp <= 1; xp++) {
+			int j = ((yb + yp) * nb) + (xb + xp);
+			j *= wn->num_points;
+			
+			for(int n = 0; n < wn->num_points; n++) {
+				float d = distpt2(x, y, points[j + n]);
+				if(d < closest1) {
+					closest3 = closest2;
+					closest2 = closest1;
+					closest1 = d;
+				}
+				else if(d < closest2) {
+					closest3 = closest2;
+					closest2 = d;
+				}	
+				else if(d < closest3) {
+					closest3 = d;
+				}	
+			}	
+			
+		}
+		
+		wn->data[i] = sqrtf(closest1);
+	}
+	
+
+
+}
+
+
+
+void worley_noise_generate_boxed_wrapped(worley_noise* wn) {
 
 	long w = wn->width;
 	long h = wn->height;
@@ -156,7 +236,7 @@ int worley_noise_generate_boxed_wrapped(worley_noise* wn) {
 
 
 
-int worley_noise_generate_random(worley_noise* wn) {
+void worley_noise_generate_random(worley_noise* wn) {
 	
 	long w = wn->width;
 	long h = wn->height;
