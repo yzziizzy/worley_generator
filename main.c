@@ -29,9 +29,23 @@ int main(int argc, char* argv[]) {
 	wn.num_boxes = 2;
 	wn.seed = 31337;
 
-	worley_noise_generate_infinite(&wn, 0, 1);
+	worley_noise_boxes wn2;
+	wn2.points_per_box = 1;
+	wn2.n_boxes_w = 2;
+	wn2.n_boxes_h = 2;
+	wn2.box_sz = 256;
+	wn2.seed = 31337;
+	
+	
+
+	worley_noise_generate_block_infinite(&wn2, 0, 0);
+//	worley_noise_generate_infinite(&wn, 0, 2);
 //	worley_noise_generate_boxed_wrapped(&wn);
 	//generate_pcg_test(&wn);
+	
+	wn.data = wn2.data;
+	wn.height = wn2.height;
+	wn.width = wn2.width;
 	
 	write_worley(argv[1], &wn);
 

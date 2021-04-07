@@ -77,6 +77,83 @@ float smootherstep(float a, float b, float t) {
 
 
 
+void worley_noise_generate_block_infinite(worley_noise_boxes* wn, int block_x, int block_y) {
+	long w = wn->box_sz * wn->n_boxes_w;
+	long h = wn->box_sz * wn->n_boxes_h;
+	long gen_boxes_w = wn->n_boxes_w + 2;
+	long gen_boxes_h = wn->n_boxes_h + 2;
+	long gen_nb2 = gen_boxes_w * gen_boxes_h; 
+	long nb2 = wn->n_boxes_w * wn->n_boxes_h; 
+	wn->width = w;
+	wn->height = h;
+	
+	
+	wn->data = malloc(sizeof(*wn->data) * w * h);
+	
+	v2l* points = malloc(sizeof(*points) * gen_nb2 * wn->points_per_box);
+	
+	// generate points inside boxes
+	for(int y = 0; y < gen_boxes_h; y++)
+	for(int x = 0; x < gen_boxes_w; x++) {
+		// index into array of points
+		int i = (y * gen_boxes_w + x) * wn->points_per_box;
+		
+		// prng seed
+		uint64_t rand_state = wn->seed;
+		rand_state = rand_state * (y - 1 + block_y) * 0xdeadbeef
+			+ (x - 1 + block_x) * 0xc00cf00d;
+		
+		for(int n = 0; n < wn->points_per_box; n++) {
+			v2l p = randpt(wn->box_sz, wn->box_sz, &rand_state);
+			points[i + n].x = p.x + wn->box_sz * (x-1);
+			points[i + n].y = p.y + wn->box_sz * (y-1);
+		}
+	}
+	
+	
+	for(int y = 0; y < h; y++)
+	for(int x = 0; x < w; x++) {
+		int i = y * w + x;
+		
+		
+		float closest1 = 9999999999999;
+		float closest2 = 999999999999;
+		float closest3 = 99999999999;
+		
+		int xb = floor((float)x / wn->box_sz) + 1;
+		int yb = floor((float)y / wn->box_sz) + 1;
+		
+		for(int yp = -1; yp <= 1; yp++)
+		for(int xp = -1; xp <= 1; xp++) {
+			int j = ((yb + yp) *  gen_boxes_w) + (xb + xp);
+			j *= wn->points_per_box;
+			
+			for(int n = 0; n < wn->points_per_box; n++) {
+				float d = distpt2(x, y, points[j + n]);
+				if(d < closest1) {
+					closest3 = closest2;
+					closest2 = closest1;
+					closest1 = d;
+				}
+				else if(d < closest2) {
+					closest3 = closest2;
+					closest2 = d;
+				}	
+				else if(d < closest3) {
+					closest3 = d;
+				}	
+			}	
+			
+		}
+		
+		wn->data[i] = sqrtf(closest1);
+	}
+	
+
+
+}
+
+
 void worley_noise_generate_infinite(worley_noise* wn, int block_x, int block_y) {
 	long w = wn->width;
 	long h = wn->height;
